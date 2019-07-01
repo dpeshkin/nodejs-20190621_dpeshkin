@@ -66,12 +66,11 @@ server.on('request', (req, res) => {
 
 function unlink(filepath, streams) {
   fs.unlink(filepath, (err) => {
-    if (err) {
-      console.log(err);
+    if (!err) {
+      streams.forEach((stream) => {
+        stream.destroy();
+      });
     }
-  });
-  streams.forEach((stream) => {
-    stream.destroy();
   });
 }
 
