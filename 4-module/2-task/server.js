@@ -16,19 +16,12 @@ server.on('request', (req, res) => {
     res.end('Вложенные папки не поддерживаются', 'utf-8');
   }
 
-  if (fs.existsSync(filepath)) {
-    res.statusCode = 409;
-    res.end('Файл уже есть на диске', 'utf-8');
-  }
-
   switch (req.method) {
     case 'POST':
       fs.mkdir('files', {recursive: true}, (err) => {
-        if (err) {
-          console.log(err);
-        }
+        if (err) throw Error(err);
 
-        const writeStream = fs.createWriteStream(filepath);
+        const writeStream = fs.createWriteStream(filepath, {flags: 'wx'});
         const limiter = new LimitSizeStream({limit: 1048576});
 
         req.pipe(limiter).pipe(writeStream);
@@ -39,12 +32,17 @@ server.on('request', (req, res) => {
         });
 
         writeStream
-            .on('error', () => {
-              unlink(filepath, [limiter, writeStream]);
-              res.statusCode = 500;
-              res.end('Возникла критическая ошибка', 'utf-8');
+            .on('error', (err) => {
+              if (err.code === 'EEXIST') {
+                res.statusCode = 409;
+                res.end('Файл уже есть на диске', 'utf-8');
+              } else {
+                unlink(filepath, [limiter, writeStream]);
+                res.statusCode = 500;
+                res.end('Возникла критическая ошибка', 'utf-8');
+              }
             })
-            .on('finish', () => {
+            .on('close', () => {
               res.statusCode = 201;
               res.end('Файл успешно сохранен', 'utf-8');
             });
