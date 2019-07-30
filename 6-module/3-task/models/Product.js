@@ -29,7 +29,29 @@ const productSchema = new mongoose.Schema({
   },
 
   images: [String],
-
 });
+
+productSchema.set('toObject', {
+  virtuals: true,
+  transform: function(doc, ret) {
+    delete ret._id;
+    delete ret.__v;
+  },
+});
+
+productSchema.index(
+    {
+      title: 'text',
+      description: 'text',
+    },
+    {
+      weights: {
+        title: 10,
+        description: 5,
+      },
+      name: 'TextSearchIndex',
+      default_language: 'russian',
+    }
+);
 
 module.exports = connection.model('Product', productSchema);
