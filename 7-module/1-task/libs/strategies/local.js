@@ -2,8 +2,15 @@ const LocalStrategy = require('passport-local').Strategy;
 const User = require('../../models/User');
 
 module.exports = new LocalStrategy(
-    {session: false},
-    function(email, password, done) {
-      done(null, false, 'Стратегия подключена, но еще не настроена');
+    {usernameField: 'email', session: false},
+    async function(email, password, done) {
+      const user = await User.findOne({email: email});
+      if (!user) done(null, false, 'Нет такого пользователя');
+      else {
+        const checkPass = await user.checkPassword(password);
+        if (!checkPass) {
+          done(null, false, 'Невереный пароль');
+        } else done(null, user);
+      }
     }
 );
